@@ -24,12 +24,7 @@ func main() {
 }
 
 func fetch(url string, cacheroot string, ch chan<- string) {
-
-	s := sha256.New()
-	s.Write([]byte(url))
-	s.Sum(nil)
-
-	cachepath := filepath.Join(cacheroot, fmt.Sprintf("%x", s))
+	cachepath := filepath.Join(cacheroot, fmt.Sprintf("%x", sha256.Sum256([]byte(url))))
 	if fi, err := os.Stat(cachepath); !os.IsNotExist(err) {
 		start := time.Now()
 		secs := time.Since(start).Seconds()
