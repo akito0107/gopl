@@ -1,0 +1,14 @@
+http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd
+http://www.w3.org/1999/xhtml
+https://github.com/adonovan/gopl.io
+http://www.informit.com/store/go-programming-language-9780134190440
+http://www.amazon.com/dp/0134190440
+http://www.informit.com/store/go-programming-language-9780134190440
+http://www.barnesandnoble.com/w/1121601944
+https://github.com/adonovan/gopl.io/
+http://golang.org/s/oracle-user-manual
+http://golang.org/lib/godoc/analysis/help.html
+https://github.com/golang/tools/blob/master/refactor/eg/eg.go
+https://github.com/golang/tools/blob/master/refactor/rename/rename.go
+http://www.amazon.com/dp/0131103628?tracking_id=disfordig-20
+http://www.amazon.com/dp/020161586X?tracking_id=disfordig-20
