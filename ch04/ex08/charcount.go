@@ -6,76 +6,73 @@ import (
 	"io"
 	"os"
 	"unicode"
-	"unicode/utf8"
 )
 
 func main() {
-	counts := make(map[rune]int)
-	var utflen [utf8.UTFMax + 1]int
-	invalid := 0
-
 	in := bufio.NewReader(os.Stdin)
-	for {
-		r, n, err := in.ReadRune()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "charcount: %v\n", err)
-			os.Exit(1)
-		}
-		if r == unicode.ReplacementChar && n == 1 {
-			invalid++
-			continue
-		}
-		counts[r]++
-		utflen[n]++
+	counts, invalid, err := Count(in)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "charcount: %v\n", err)
+		os.Exit(1)
 	}
 	fmt.Printf("rune\tcount\n")
 	for c, n := range counts {
 		fmt.Printf("%q \t %d\n", c, n)
 	}
 	fmt.Print("\nlen\tcount\n")
-	for i, n := range utflen {
-		if i > 0 {
-			fmt.Printf("%d\t%d\n", i, n)
-		}
+	for k, v := range counts {
+		fmt.Printf("%s\t%d\n", k, v)
 	}
 	if invalid > 0 {
 		fmt.Printf("\n%d invalid UTF-8 characters\n", invalid)
 	}
 }
 
-func count(src io.Reader) {
+func Count(src io.Reader) (map[string]int, int, error) {
 	in := bufio.NewReader(src)
-
+	counts := make(map[string]int)
+	invalid := 0
 	for {
 		r, n, err := in.ReadRune()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "charcount: %v\n", err)
-			os.Exit(1)
+			return nil, invalid, err
+		}
+		if unicode.IsControl(r) {
+			counts["control"]++
+			continue
+		}
+		if unicode.IsNumber(r) {
+			counts["number"]++
+			continue
+		}
+		if unicode.IsMark(r) {
+			counts["mark"]++
+			continue
+		}
+		if unicode.IsSymbol(r) {
+			counts["symbol"]++
+			continue
+		}
+		if unicode.IsPunct(r) {
+			counts["punct"]++
+			continue
+		}
+		if unicode.IsSpace(r) {
+			counts["space"]++
+			continue
+		}
+		if unicode.IsLetter(r) {
+			counts["letter"]++
+			continue
 		}
 		if r == unicode.ReplacementChar && n == 1 {
 			invalid++
 			continue
 		}
-		counts[r]++
-		utflen[n]++
+		counts["unknown"]++
 	}
-	fmt.Printf("rune\tcount\n")
-	for c, n := range counts {
-		fmt.Printf("%q \t %d\n", c, n)
-	}
-	fmt.Print("\nlen\tcount\n")
-	for i, n := range utflen {
-		if i > 0 {
-		}
-		fmt.Printf("%d\t%d\n", i, n)
-	}
-	if invalid > 0 {
-		fmt.Printf("\n%d invalid UTF-8 characters\n", invalid)
-	}
+	return counts, invalid, nil
 }
