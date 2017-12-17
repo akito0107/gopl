@@ -3,24 +3,24 @@ package main
 import "fmt"
 
 func main() {
-	test := []string{"test", "test", "hoge", "fuga"}
+	test := []string{"test", "hoge", "hoge", "fuga"}
 	fmt.Println(test)
 	res := uniq(test)
 	fmt.Println(res)
 	fmt.Println(test)
 }
 
-func uniq(s []string) []string {
-	if len(s) == 1 {
-		return s
+func uniq(strs []string) []string {
+	if len(strs) == 1 {
+		return strs[:]
 	}
-	buf := s[0]
-	res := s[0:1]
-	for i := 1; i < len(s); i++ {
-		if buf != s[i] {
-			res = append(res, s[i])
+	i := 0
+	for _, s := range strs {
+		if s == strs[i] {
+			continue
 		}
-		buf = s[i]
+		i++
+		strs[i] = s
 	}
-	return res
+	return strs[:i+1]
 }

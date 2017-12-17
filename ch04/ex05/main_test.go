@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func Test_reverse(t *testing.T) {
 	cases := []struct {
@@ -21,6 +24,7 @@ func Test_reverse(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
+		fmt.Printf("case: %v \n", c)
 		if act := uniq(c.in); !equals(act, c.out) {
 			t.Errorf("expected: %v, but: %v", c.out, act)
 		}
