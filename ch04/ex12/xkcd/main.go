@@ -11,6 +11,8 @@ import (
 
 	"fmt"
 
+	"strings"
+
 	"github.com/akito0107/gopl/ch04/ex12/crawler"
 )
 
@@ -23,6 +25,9 @@ func init() {
 		log.Fatal(err)
 	}
 	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".json") {
+			continue
+		}
 		var c crawler.Comic
 		f, err := ioutil.ReadFile("../data/" + file.Name())
 		if err != nil {
@@ -34,7 +39,6 @@ func init() {
 		}
 		index[strconv.Itoa(c.Num)] = c.Transcript
 	}
-
 }
 
 func main() {

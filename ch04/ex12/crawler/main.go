@@ -18,11 +18,11 @@ const baseURL = "https://xkcd.com/"
 const workerSize = 10
 
 func Crawl() {
-	if len(os.Args) != 3 {
+	if len(os.Args) != 4 {
 		log.Fatal("usage: ./xkcd crawl :start :stop  eg). xkcd crawl 100 200")
 	}
-	start, err := strconv.Atoi(os.Args[1])
-	end, err := strconv.Atoi(os.Args[2])
+	start, err := strconv.Atoi(os.Args[2])
+	end, err := strconv.Atoi(os.Args[3])
 	if err != nil {
 		log.Fatal(err)
 	}
