@@ -18,3 +18,4 @@
 .glide/
 
 # End of https://www.gitignore.io/api/go
+ch04/ex12/data/*.json
