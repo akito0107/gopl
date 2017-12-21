@@ -1,8 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math"
+
+	"log"
 )
 
 const (
@@ -16,9 +19,10 @@ const (
 )
 
 var sin30, cos30 = math.Sin(angle), math.Cos(angle)
-var form string = "magura"
+var form = flag.String("form", "magura", "[magura | mogul] (default=magura)")
 
 func main() {
+	flag.Parse()
 	fmt.Printf("<svg xmls='http://www.w3.org/2000/svg' "+
 		"style='stroke: grey; fill: white; stroke-width: 0.7' "+
 		"width='%d' height='%d'>", width, height)
@@ -40,12 +44,12 @@ func corner(i, j int) (float64, float64) {
 	y := xyrange * (float64(j)/cells - 0.5)
 
 	var z float64
-	if form == "mogul" {
+	if *form == "mogul" {
 		z = mogul(x, y)
-	} else if form == "magura" {
+	} else if *form == "magura" {
 		z = hyperbolicParaboloid(x, y)
 	} else {
-		x = f(x, y)
+		log.Fatal("unsupported form type")
 	}
 
 	sx := width/2 + (x-y)*cos30*xyscale
@@ -68,13 +72,4 @@ func hyperbolicParaboloid(x, y float64) float64 {
 	b2 := b * b
 
 	return y*y/a2 - x*x/b2
-}
-
-func f(x, y float64) float64 {
-	r := math.Hypot(x, y)
-	res := math.Sin(r) / r
-	if math.IsNaN(res) {
-		return 0.0
-	}
-	return res
 }
