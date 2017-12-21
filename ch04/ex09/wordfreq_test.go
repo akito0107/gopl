@@ -23,10 +23,10 @@ cde efs asdf asdf`,
 		},
 		{
 			name: "japanese",
-			in: ` hoge hoge
-hoge fuga`,
+			in: ` hoge hoge ほげ
+hoge fuga ほげ`,
 			tester: func(in map[string]int) bool {
-				return in["hoge"] == 3
+				return in["hoge"] == 3 && in["ほげ"] == 2
 			},
 		},
 	}
