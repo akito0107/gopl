@@ -17,7 +17,6 @@ import (
 	"path"
 
 	lib "github.com/akito0107/gopl/ch05/links"
-	"github.com/k0kubun/pp"
 )
 
 const AGE = 3
@@ -61,7 +60,6 @@ func linkHandler(domain string, rootDir string) bodyHandler {
 			return err
 		}
 
-		pp.Print(raw)
 		filepath := path.Dir(raw.Path)
 		if filepath == "." {
 			filepath = "/"
@@ -84,6 +82,7 @@ func linkHandler(domain string, rootDir string) bodyHandler {
 		if err != nil {
 			return err
 		}
+		defer file.Close()
 
 		if _, err := io.Copy(file, r); err != nil {
 			return err

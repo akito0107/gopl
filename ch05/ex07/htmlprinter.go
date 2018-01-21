@@ -17,7 +17,7 @@ func pp(r io.Reader, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	PrettyPrintHtml(doc, w)
+	return PrettyPrintHtml(doc, w)
 }
 
 func PrettyPrintHtml(doc *html.Node, w io.Writer) error {
