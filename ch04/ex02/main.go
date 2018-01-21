@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
+	"hash"
 	"log"
 	"os"
 )
@@ -14,6 +15,8 @@ func main() {
 	var alg = flag.String("alg", "sha256", "")
 	fmt.Scan(&in)
 	flag.Parse()
+
+	var h hash.Hash
 
 	switch *alg {
 	case "sha256":

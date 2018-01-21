@@ -17,7 +17,9 @@ const (
 type mandelbrot func(complex128) color.Color
 
 func main() {
-	draw(os.Stdout, mandelbrotBigComplex, 1024, 1024)
+	//draw(os.Stdout, mandelbrotBigComplex, 1024, 1024)
+	draw(os.Stdout, mandelbrot64, 1024, 1024)
+	//draw(os.Stdout, mandelbrotBigComplex, 1024, 1024)
 }
 
 func draw(out io.Writer, f mandelbrot, width, height int) {

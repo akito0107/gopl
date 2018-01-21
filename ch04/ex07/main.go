@@ -7,9 +7,10 @@ import (
 
 func main() {
 	test := []byte("あいうえお")
-	fmt.Println(test)
-	test = Reverse(test)
 	fmt.Println(string(test))
+	test2 := Reverse(test)
+	fmt.Println(string(test))
+	fmt.Println(string(test2))
 }
 func _rev(b []byte) {
 	size := len(b)

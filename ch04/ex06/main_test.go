@@ -35,6 +35,10 @@ func Test_compact(t *testing.T) {
 			in:  []byte("  先頭 と  末尾  a  "),
 			out: []byte(" 先頭 と 末尾 a "),
 		},
+		{
+			in:  []byte(" 　先頭 と  末尾  a  "),
+			out: []byte(" 先頭 と 末尾 a "),
+		},
 	}
 	for _, c := range cases {
 		if act := compact(c.in); !equals(act, c.out) {
