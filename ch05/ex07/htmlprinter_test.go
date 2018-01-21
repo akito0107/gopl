@@ -116,6 +116,7 @@ multi line
 `
 
 	act := new(bytes.Buffer)
+
 	pp(strings.NewReader(in), act)
 
 	if bytes.Compare([]byte(expected), act.Bytes()) != 0 {
