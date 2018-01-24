@@ -12,7 +12,7 @@ import (
 
 var depth int
 
-func pp(r io.Reader, w io.Writer) error {
+func Print(r io.Reader, w io.Writer) error {
 	doc, err := html.Parse(r)
 	if err != nil {
 		return err

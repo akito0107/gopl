@@ -2,12 +2,10 @@ package main
 
 import (
 	"bytes"
-	"log"
 	"testing"
 
 	"strings"
 
-	"github.com/andreyvit/diff"
 	"golang.org/x/net/html"
 )
 
@@ -63,7 +61,6 @@ func Test_ppElement(t *testing.T) {
 			act := new(bytes.Buffer)
 			ppElement(act, c.in, c.depth)
 			if bytes.Compare([]byte(c.out), act.Bytes()) != 0 {
-				log.Println(diff.LineDiff(c.out, act.String()))
 				t.Fatal("not matched")
 			}
 		})
@@ -117,10 +114,9 @@ multi line
 
 	act := new(bytes.Buffer)
 
-	pp(strings.NewReader(in), act)
+	Print(strings.NewReader(in), act)
 
 	if bytes.Compare([]byte(expected), act.Bytes()) != 0 {
-		t.Log(diff.LineDiff(expected, act.String()))
 		t.Fatal("not matched")
 	}
 }
