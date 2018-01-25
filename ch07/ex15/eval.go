@@ -1,10 +1,34 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"log"
 	"math"
+	"os"
+	"strconv"
 	"strings"
 )
+
+func main() {
+	fmt.Fprint(os.Stdout, "Please Input Expression:\n")
+
+	reader := bufio.NewReader(os.Stdin)
+	expr, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+	if expr == "" {
+		log.Fatal("please input valid expression")
+	}
+	t, err := Parse(strings.TrimSpace(expr))
+	if err != nil {
+		log.Fatal(err)
+	}
+	res := t.Eval(Env{cache: map[Var]float64{}, reader: os.Stdin})
+	fmt.Fprintf(os.Stdout, "result: %g\n", res)
+}
 
 type Expr interface {
 	Eval(env Env) float64
@@ -19,7 +43,7 @@ func (v Var) String() string {
 }
 
 func (v Var) Eval(env Env) float64 {
-	return env[v]
+	return env.Get(v)
 }
 
 func (v Var) Check(vars map[Var]bool) error {
@@ -65,30 +89,6 @@ func (u unary) Check(vars map[Var]bool) error {
 		return fmt.Errorf("unexpected unary op %q", u.op)
 	}
 	return u.x.Check(vars)
-}
-
-type abs struct {
-	args []Expr
-}
-
-func (a abs) Eval(env Env) float64 {
-	return math.Abs(a.args[0].Eval(env))
-}
-
-func (a abs) Check(vars map[Var]bool) error {
-	if len(a.args) != 1 {
-		return fmt.Errorf("call to abs has %d args, want %d", len(a.args), 1)
-	}
-	for _, arg := range a.args {
-		if err := arg.Check(vars); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (a abs) String() string {
-	return fmt.Sprintf("abs(%s)", a.args[0])
 }
 
 type binary struct {
@@ -171,4 +171,26 @@ func (c call) Check(vars map[Var]bool) error {
 
 var numParams = map[string]int{"pow": 2, "sin": 1, "sqrt": 1}
 
-type Env map[Var]float64
+type Env struct {
+	cache  map[Var]float64
+	reader io.Reader
+}
+
+func (e *Env) Get(name Var) float64 {
+	if v, ok := e.cache[name]; ok {
+		return v
+	}
+	reader := bufio.NewReader(e.reader)
+	fmt.Fprintf(os.Stdout, "please input value %s: \n", name)
+	in, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	v, err := strconv.ParseFloat(strings.TrimSpace(in), 64)
+	if in == "" || err != nil {
+		log.Fatalf("please input valid float value: %s, error: %s", in, err)
+	}
+	e.cache[name] = v
+	return v
+}

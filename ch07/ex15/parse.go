@@ -135,9 +135,6 @@ func parsePrimary(lex *lexer) Expr {
 			}
 		}
 		lex.next() // consume ')'
-		if id == "abs" {
-			return abs{args}
-		}
 		return call{id, args}
 
 	case scanner.Int, scanner.Float:
