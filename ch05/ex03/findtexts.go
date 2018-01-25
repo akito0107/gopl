@@ -7,6 +7,8 @@ import (
 
 	"io"
 
+	"strings"
+
 	"golang.org/x/net/html"
 )
 
@@ -29,7 +31,8 @@ func run(r io.Reader, w io.Writer) error {
 
 func visit(texts []string, n *html.Node) []string {
 	if n.Type == html.TextNode {
-		texts = append(texts, n.Data)
+		text := strings.TrimSpace(n.Data)
+		texts = append(texts, text)
 	}
 
 	if c := n.FirstChild; c != nil {

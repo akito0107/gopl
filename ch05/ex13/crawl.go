@@ -14,9 +14,10 @@ import (
 
 	"net/url"
 
-	"path"
+	"path/filepath"
 
 	lib "github.com/akito0107/gopl/ch05/links"
+	"github.com/k0kubun/pp"
 )
 
 const AGE = 3
@@ -60,25 +61,21 @@ func linkHandler(domain string, rootDir string) bodyHandler {
 			return err
 		}
 
-		filepath := path.Dir(raw.Path)
-		if filepath == "." {
-			filepath = "/"
+		dir := rootDir + "/" + raw.Host
+		var filename string
+		if filepath.Ext(filename) == "" {
+			dir = filepath.Join(dir, raw.Path)
+			filename = filepath.Join(dir, "index.html")
+		} else {
+			dir = filepath.Join(dir, filepath.Dir(raw.Path))
+			filename = raw.Path
 		}
-		fileDir := rootDir + filepath
 
-		filename := path.Base(raw.Path)
-		if filename == "/" || filename == "." {
-			filename = "index.html"
-		}
-		targetPath := fileDir + filename
-
-		log.Printf("filepath: %s\n", targetPath)
-
-		if err := os.MkdirAll(fileDir, 0777); err != nil {
+		if err := os.MkdirAll(dir, 0777); err != nil {
 			return err
 		}
 
-		file, err := os.Create(targetPath)
+		file, err := os.Create(filename)
 		if err != nil {
 			return err
 		}
@@ -106,6 +103,7 @@ func extract(url string, handler bodyHandler) ([]string, error) {
 	var buf bytes.Buffer
 	tee := io.TeeReader(resp.Body, &buf)
 	if err := handler(url, tee); err != nil {
+		pp.Fatal(err)
 		log.Fatal(err)
 	}
 

@@ -28,7 +28,7 @@ func main() {
 }
 
 func CountsWordsAndImages(url string) (words, images int, err error) {
-	resp, err := http.Get(url)
+	resp, err := http.Get(strings.TrimSpace(url))
 	if err != nil {
 		return
 	}
