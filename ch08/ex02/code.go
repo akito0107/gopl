@@ -6,6 +6,7 @@ const TransferStarting = 125
 const OK = 200
 const SystemStatusReply = 211
 const DirectoryStatus = 212
+const FileStat = 213
 const SystemType = 215
 const ReadyForUser = 220
 const ServiceClosingControlConnection = 221

@@ -86,10 +86,6 @@ func handle(s *Session, command string, arg string) {
 		s.SendCtrl(SystemStatusReply, "End.")
 	case "PWD":
 		s.SendCtrl(Created, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath()))
-		//case "PASV":
-		//	u := UserSession{host: "127.0.0.1"}
-		//	u.Listen()
-		//	w.Printf(EnteringPassiveMode, "Entering Passive Mode (%s)\n", u.FormatNetwork())
 	case "PORT":
 		network := strings.Split(arg, ",")
 		host := strings.Join(network[0:4], ".")
@@ -112,6 +108,20 @@ func handle(s *Session, command string, arg string) {
 	case "CWD":
 		s.Cd(arg)
 		s.SendCtrl(RequestedCompleted, fmt.Sprintf("%s is a current directory.", s.CurrentPath()))
+	case "TYPE":
+		s.SetType(FromCode(arg))
+		s.SendCtrl(OK, fmt.Sprintf("Type set to: %s", s.Type()))
+	case "SIZE":
+		size := s.Size(arg)
+		s.SendCtrl(FileStat, fmt.Sprintf("%d", size))
+	case "RETR":
+		s.SendCtrl(TransferStarting, "start.")
+		s.SendFile(arg)
+		s.SendCtrl(CloseDataConnection, "Transfer complete")
+	case "STOR":
+		s.SendCtrl(TransferStarting, "start.")
+		s.RecvFile(arg)
+		s.SendCtrl(CloseDataConnection, "Transfer complete")
 	default:
 		s.SendCtrl(NotImplemented, "Not Implemented")
 	}
