@@ -1,4 +1,10 @@
-package memo5
+package ex03
+
+import (
+	"log"
+	"net/url"
+	"strings"
+)
 
 type request struct {
 	key      string
@@ -84,5 +90,17 @@ func (e *entry) deliver(response chan<- result) {
 }
 
 func IsCanceled(err error) bool {
+	if err == nil {
+		return false
+	}
+	log.Printf("called: canceled %+v\n", err.Error())
+	e, ok := err.(*url.Error)
+	if !ok {
+		log.Printf("called: canceled ok=false %+v\n", err.Error())
+		return false
+	}
+	if strings.Contains(e.Error(), "cancel") {
+		return true
+	}
 	return false
 }
