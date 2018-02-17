@@ -1,22 +1,34 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
+	"path/filepath"
 )
 
 type Session struct {
-	ctrl *ConnManager
-	data *ConnManager
+	ctrl        *ConnManager
+	data        *ConnManager
+	basePath    string
+	currentPath string
 }
 
-func NewSession(conn net.Conn) *Session {
+func NewSession(conn net.Conn, basePath string) *Session {
 	ctrl := NewConnManager(conn)
 	ctrl.Run()
 	return &Session{
-		ctrl: ctrl,
+		ctrl:        ctrl,
+		basePath:    basePath,
+		currentPath: "/",
 	}
+}
+
+func (s *Session) CurrentPath() string {
+	return filepath.Join(s.basePath, s.currentPath)
 }
 
 func (s *Session) OpenDataConn(host string, port int) error {
@@ -46,6 +58,28 @@ func (s *Session) RecvData() string {
 	return s.data.Recv()
 }
 
-func (s *Session) SendData(mes string) {
-	s.data.Send(mes)
+func (s *Session) SendData(r io.Reader) {
+	s.data.SendBin(r)
+}
+
+func (s *Session) CloseData() {
+	s.data.Close()
+}
+
+func (s *Session) Ls() {
+	files, err := ioutil.ReadDir(s.CurrentPath())
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		p := fmt.Sprintf("%s\t%s\t%s\n", f.Mode(), f.ModTime(), f.Name())
+		s.SendData(bytes.NewBufferString(p))
+	}
+
+	s.CloseData()
+}
+
+func (s *Session) Cd(cwd string) {
+	s.currentPath = filepath.Join(s.currentPath, cwd)
+	log.Printf("cd: %s \n", s.currentPath)
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -31,33 +31,25 @@ func main() {
 	}
 }
 
-type ResponseWriter struct {
-	w io.Writer
-}
-
-func (w *ResponseWriter) Printf(code int, format string, arg ...interface{}) {
-	f := fmt.Sprintf("%d %s", code, format)
-	if len(arg) == 0 {
-		log.Printf(f)
-		fmt.Fprintf(w.w, f)
-	} else {
-		log.Printf(f, arg)
-		log.Printf(f, arg)
-	}
-}
-
 func handleConn(c net.Conn) {
 	defer c.Close()
-	log.Println("connected")
 
-	s := NewSession(c)
+	log.Println("connected")
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	log.Println(exPath)
+
+	s := NewSession(c, exPath)
 	handleLogin(s)
 
-	for input.Scan() {
-		t := input.Text()
-		log.Printf(">> incomming message %s \n", t)
-		commands := strings.Split(t, " ")
-		handle(commands[0], strings.Join(commands[1:], " "), w)
+	for {
+		mes := s.RecvCtrl()
+		log.Printf(">> incomming message %s \n", mes)
+		commands := strings.Split(mes, " ")
+		handle(s, commands[0], strings.Join(commands[1:], " "))
 	}
 }
 
@@ -86,79 +78,18 @@ func handleLogin(s *Session) {
 	s.SendCtrl(UserLoggedIn, "Login Successful")
 }
 
-type UserSession struct {
-	host string
-	port int
-	conn net.Conn
-}
-
-// passive mode
-func (s *UserSession) Listen() {
-	l, err := net.Listen("tcp", s.host+":0")
-	if err != nil {
-		log.Fatal(err)
-	}
-	networks := strings.Split(l.Addr().String(), ":")
-	s.port, err = strconv.Atoi(networks[1])
-	if err != nil {
-		log.Fatal(err)
-	}
-	go func() {
-		conn, err := l.Accept()
-		if err != nil {
-			log.Println(err)
-		}
-		s.conn = conn
-		input := bufio.NewScanner(conn)
-		for input.Scan() {
-			t := input.Text()
-			log.Printf(">>> incomming passive message %s \n", t)
-		}
-	}()
-}
-
-func (u *UserSession) Connect(mes <-chan string) {
-	addr := fmt.Sprintf("%s:%d", u.host, u.port)
-	log.Printf("connecting to: %s \n", addr)
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("connected: to %s\n", addr)
-	u.conn = conn
-
-	go func() {
-		defer conn.Close()
-		go func() {
-			input := bufio.NewScanner(conn)
-			for input.Scan() {
-				t := input.Text()
-				log.Printf(">>> incomming message %s \n", t)
-			}
-		}()
-		message := <-mes
-		log.Println("--------")
-		fmt.Fprintf(conn, "message: %s\n", message)
-	}()
-}
-
-func (s *UserSession) FormatNetwork() string {
-	hs := strings.Replace(s.host, ".", ",", 0)
-	return fmt.Sprintf("%s,%d", hs, s.port)
-}
-
-func handle(command string, arg string, w *ResponseWriter) {
+func handle(s *Session, command string, arg string) {
 	switch command {
 	case "SYST":
-		w.Printf(SystemType, "UNIX Type: L8\n")
+		s.SendCtrl(SystemType, "UNIX Type: L8")
 	case "FEAT":
-		w.Printf(SystemStatusReply, "End.\n")
+		s.SendCtrl(SystemStatusReply, "End.")
 	case "PWD":
-		w.Printf(Created, "\"/\" is the current directory.\n")
-	//case "PASV":
-	//	u := UserSession{host: "127.0.0.1"}
-	//	u.Listen()
-	//	w.Printf(EnteringPassiveMode, "Entering Passive Mode (%s)\n", u.FormatNetwork())
+		s.SendCtrl(Created, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath()))
+		//case "PASV":
+		//	u := UserSession{host: "127.0.0.1"}
+		//	u.Listen()
+		//	w.Printf(EnteringPassiveMode, "Entering Passive Mode (%s)\n", u.FormatNetwork())
 	case "PORT":
 		network := strings.Split(arg, ",")
 		host := strings.Join(network[0:4], ".")
@@ -172,20 +103,16 @@ func handle(command string, arg string, w *ResponseWriter) {
 			log.Fatal(err)
 		}
 		port := base*256 + p
-
-		u := UserSession{
-			host: host,
-			port: port,
-		}
-		m := make(chan string)
-		u.Connect(m)
-		w.Printf(OK, "OK.\n")
-
-		go func() {
-			m <- "lslslsls"
-		}()
-
+		s.OpenDataConn(host, port)
+		s.SendCtrl(OK, "PORT command successful")
+	case "LIST":
+		s.SendCtrl(TransferStarting, "start.")
+		s.Ls()
+		s.SendCtrl(CloseDataConnection, "Transfer complete")
+	case "CWD":
+		s.Cd(arg)
+		s.SendCtrl(RequestedCompleted, fmt.Sprintf("%s is a current directory.", s.CurrentPath()))
 	default:
-		w.Printf(NotImplemented, "Not Implemented\n")
+		s.SendCtrl(NotImplemented, "Not Implemented")
 	}
 }
