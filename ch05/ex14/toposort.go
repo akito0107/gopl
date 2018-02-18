@@ -35,11 +35,10 @@ func main() {
 var result []string
 
 func run(items map[string][]string) []string {
-	var keys []string
-	for k := range items {
-		keys = append(keys, k)
-	}
-	links.BreadthFirst(topoSort(), keys)
+	//for k := range items {
+	//	keys = append(keys, k)
+	//}
+	links.BreadthFirst(topoSort(), []string{"programming languages"})
 
 	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
 		result[i], result[j] = result[j], result[i]

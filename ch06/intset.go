@@ -1,4 +1,4 @@
-package ch06
+package main
 
 import (
 	"bytes"

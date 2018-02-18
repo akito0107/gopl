@@ -1,9 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 func main() {
 	fmt.Printf("value is %d\n", run())
+	run2()
 }
 
 func run() (val int) {
@@ -12,6 +16,12 @@ func run() (val int) {
 		i := recover()
 		val = i.(int)
 	}()
-
 	panic(1)
+}
+
+func run2() {
+	panic(1)
+	defer func() {
+		log.Println("----")
+	}()
 }
