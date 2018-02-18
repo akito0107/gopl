@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,6 +20,7 @@ type Session struct {
 	mode        TransferMode
 	done        chan struct{}
 	opener      DataConnOpener
+	fs          FSManager
 }
 
 func NewSession(conn net.Conn, basePath string, done chan struct{}) *Session {
@@ -33,6 +33,7 @@ func NewSession(conn net.Conn, basePath string, done chan struct{}) *Session {
 		mode:        BIN,
 		done:        done,
 		opener:      DefaultDataConnOpener(),
+		fs:          DefaultFS(),
 	}
 	go func() {
 		<-ctrl.done
@@ -154,7 +155,7 @@ func (s *Session) SendCtrl(code int, mes string) {
 }
 
 func (s *Session) RecvFile(filename string) {
-	fi, err := os.Create(filepath.Join(s.CurrentPath(), filename))
+	fi, err := s.fs.Create(filepath.Join(s.CurrentPath(), filename))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -170,6 +171,7 @@ func (s *Session) CloseData() {
 	s.data.Close()
 }
 
+// TODO add test
 func (s *Session) Ls() {
 	files, err := ioutil.ReadDir(s.CurrentPath())
 	if err != nil {
@@ -198,7 +200,7 @@ func (s *Session) Type() TransferMode {
 }
 
 func (s *Session) Size(filename string) int {
-	fi, err := os.Stat(filepath.Join(s.CurrentPath(), filename))
+	fi, err := s.fs.Stat(filepath.Join(s.CurrentPath(), filename))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -206,7 +208,7 @@ func (s *Session) Size(filename string) int {
 }
 
 func (s *Session) SendFile(filename string) {
-	fi, err := os.Open(filepath.Join(s.CurrentPath(), filename))
+	fi, err := s.fs.Open(filepath.Join(s.CurrentPath(), filename))
 	if err != nil {
 		log.Fatal(err)
 	}
