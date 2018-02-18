@@ -47,6 +47,7 @@ func (c *CtrlConnManager) Run() {
 		for input.Scan() {
 			c.out <- input.Text()
 		}
+		c.Close()
 	}()
 	go func() {
 		defer c.conn.Close()
