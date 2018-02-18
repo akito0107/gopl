@@ -20,6 +20,7 @@ type Session struct {
 	currentPath string
 	mode        TransferMode
 	done        chan struct{}
+	opener      DataConnOpener
 }
 
 func NewSession(conn net.Conn, basePath string, done chan struct{}) *Session {
@@ -31,6 +32,7 @@ func NewSession(conn net.Conn, basePath string, done chan struct{}) *Session {
 		currentPath: "/",
 		mode:        BIN,
 		done:        done,
+		opener:      DefaultDataConnOpener(),
 	}
 	go func() {
 		<-ctrl.done
@@ -86,14 +88,14 @@ func (s *Session) Handle(command string, arg string) error {
 		}
 		port := base*256 + p
 		s.OpenDataConn(host, port)
-		s.SendCtrl(OK, "PORT command successful")
+		s.SendCtrl(OK, "PORT command successful.")
 	case "LIST":
 		s.SendCtrl(TransferStarting, "start.")
 		s.Ls()
 		s.SendCtrl(CloseDataConnection, "Transfer complete")
 	case "CWD":
 		s.Cd(arg)
-		s.SendCtrl(RequestedCompleted, fmt.Sprintf("%s is a current directory.", s.CurrentPath()))
+		s.SendCtrl(RequestedCompleted, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath()))
 	case "TYPE":
 		s.SetType(FromCode(arg))
 		s.SendCtrl(OK, fmt.Sprintf("Type set to: %s", s.Type()))
@@ -127,7 +129,7 @@ func (s *Session) CurrentPath() string {
 func (s *Session) OpenDataConn(host string, port int) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	log.Printf("connecting to: %s \n", addr)
-	conn, err := net.Dial("tcp", addr)
+	conn, err := s.opener.Open(host, port)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 )
 
@@ -43,11 +44,12 @@ func (c *CtrlConnManager) Recv() string {
 
 func (c *CtrlConnManager) Run() {
 	go func() {
+		defer c.Close()
 		input := bufio.NewScanner(c.conn)
 		for input.Scan() {
 			c.out <- input.Text()
 		}
-		c.Close()
+		log.Println("Going to closing")
 	}()
 	go func() {
 		defer c.conn.Close()
@@ -55,10 +57,10 @@ func (c *CtrlConnManager) Run() {
 			select {
 			case mes := <-c.in:
 				fmt.Fprintf(c.conn, mes)
+				c.ack <- struct{}{}
 			case <-c.done:
 				return
 			}
-			c.ack <- struct{}{}
 		}
 	}()
 }

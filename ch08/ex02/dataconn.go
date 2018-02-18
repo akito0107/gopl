@@ -1,9 +1,27 @@
 package main
 
 import (
+	"fmt"
 	"io"
+	"log"
 	"net"
 )
+
+type DataConnOpener interface {
+	Open(host string, port int) (net.Conn, error)
+}
+
+type dataConnOpener struct{}
+
+func DefaultDataConnOpener() DataConnOpener {
+	return &dataConnOpener{}
+}
+
+func (dataConnOpener) Open(host string, port int) (net.Conn, error) {
+	addr := fmt.Sprintf("%s:%d", host, port)
+	log.Printf("connecting to: %s \n", addr)
+	return net.Dial("tcp", addr)
+}
 
 type DataConnManager struct {
 	conn  net.Conn
@@ -37,10 +55,10 @@ func (c *DataConnManager) Run() {
 			select {
 			case r := <-c.binIn:
 				io.Copy(c.conn, r)
+				c.ack <- struct{}{}
 			case <-c.done:
 				return
 			}
-			c.ack <- struct{}{}
 		}
 	}()
 }
