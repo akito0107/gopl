@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"log"
 )
 
 type Node interface{}
@@ -14,6 +15,11 @@ type Element struct {
 	Type     xml.Name
 	Attr     []xml.Attr
 	Children []Node
+}
+
+func main() {
+	e := parse(os.Stdin)
+	log.Printf("%+v", e)
 }
 
 func parse(r io.Reader) *Element {
