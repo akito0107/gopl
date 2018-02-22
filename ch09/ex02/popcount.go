@@ -1,4 +1,4 @@
-package popcount
+package ex02
 
 import "sync"
 
