@@ -31,8 +31,22 @@ func echo(c net.Conn, wg *sync.WaitGroup, shout string, delay time.Duration) {
 	time.Sleep(delay)
 	fmt.Fprintln(c, "\t", shout)
 	time.Sleep(delay)
-	fmt.Fprintln(c, "\t", strings.ToUpper(shout))
+	fmt.Fprintln(c, "\t", strings.ToLower(shout))
 	wg.Done()
+}
+
+func timer(ack chan struct{}, c net.Conn) {
+	for {
+		select {
+		case <-time.After(10 * time.Second):
+			c.Close()
+			return
+		case _, ok := <-ack:
+			if !ok {
+				return
+			}
+		}
+	}
 }
 
 func handleConn(c net.Conn) {
@@ -43,36 +57,14 @@ func handleConn(c net.Conn) {
 	wg := &sync.WaitGroup{}
 	ack := make(chan struct{})
 
-	go func(conn *net.TCPConn, wg *sync.WaitGroup, ack chan struct{}) {
-		for input.Scan() {
-			wg.Add(1)
-			ack <- struct{}{}
-			go echo(conn, wg, input.Text(), 1*time.Second)
-		}
-	}(conn, wg, ack)
-
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	wd := false
-
-HANDLER_MAIN:
-	for {
-		select {
-		case <-ticker.C:
-			log.Printf("ticker and flag : %t\n", wd)
-			if wd {
-				wd = false
-				continue
-			}
-			break HANDLER_MAIN
-		case <-ack:
-			wd = true
-			continue
-		default:
-			continue
-		}
+	go timer(ack, conn)
+	for input.Scan() {
+		wg.Add(1)
+		ack <- struct{}{}
+		go echo(conn, wg, input.Text(), 1*time.Second)
 	}
 	log.Println("no message received close channel")
+	close(ack)
 
 	wg.Wait()
 	conn.CloseWrite()

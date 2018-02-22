@@ -16,7 +16,6 @@ func main() {
 	con := conn.(*net.TCPConn)
 
 	go handleReader(con, done)
-
 	mustCopy(con, os.Stdin)
 	con.CloseWrite()
 	<-done
