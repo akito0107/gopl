@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"errors"
+	"os"
 )
 
 type SessionController struct {
@@ -42,46 +44,48 @@ func NewSessionController(conn net.Conn, basePath string, done chan struct{}) *S
 	return s
 }
 
-func (s *SessionController) Login() {
+func (s *SessionController) Login() error {
 	s.SendCtrl(ReadyForUser, "my go ftp server ready (default: user)")
 
 	userseq := strings.Split(s.RecvCtrl(), " ")
 	if !strings.EqualFold(userseq[0], "USER") {
 		s.SendCtrl(SyntaxError, "Invalid Sequence.\n")
-		return
+		return errors.New("invalid command")
 	}
 
 	pass := users[userseq[1]]
-	s.SendCtrl(NeedPassword, "Send Password. (default: 1234)")
+	s.SendCtrl(NeedPassword, "Send Password. (default: 12345)")
 
 	passseq := strings.Split(s.RecvCtrl(), " ")
 	if !strings.EqualFold(passseq[0], "PASS") {
 		s.SendCtrl(SyntaxError, "Invalid Sequence")
-		return
+		return errors.New("invalid command")
 	}
 
 	if pass != passseq[1] {
 		s.SendCtrl(NotLoggedIn, "Authentication failed")
-		return
+		return errors.New("invalid user")
 	}
 	s.SendCtrl(UserLoggedIn, "Login Successful")
+
+	return nil
 }
 
 func (s *SessionController) Handle(command string, arg string) error {
 	switch command {
 	case "SYST":
 		if err := s.SendCtrl(SystemType, "UNIX Type: L8"); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "FEAT":
 		if err := s.SendCtrl(SystemStatusReply, "End."); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "PWD":
 		if err := s.SendCtrl(Created, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath())); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "PORT":
@@ -90,92 +94,98 @@ func (s *SessionController) Handle(command string, arg string) error {
 
 		base, err := strconv.Atoi(network[4])
 		if err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		p, err := strconv.Atoi(network[5])
 		if err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		port := base*256 + p
 		if err := s.OpenDataConn(host, port); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.SendCtrl(OK, "PORT command successful."); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "LIST":
 		if err := s.SendCtrl(TransferStarting, "start."); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.Ls(); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.SendCtrl(CloseDataConnection, "Transfer complete"); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "CWD":
 		s.Cd(arg)
 		if err := s.SendCtrl(RequestedCompleted, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath())); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "TYPE":
 		s.SetType(FromCode(arg))
 		if err := s.SendCtrl(OK, fmt.Sprintf("Type set to: %s", s.Type())); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "SIZE":
 		size, err := s.Size(arg)
 		if err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.SendCtrl(FileStat, fmt.Sprintf("%d", *size)); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "RETR":
 		if err := s.SendCtrl(TransferStarting, "start."); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.SendFile(arg); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.SendCtrl(CloseDataConnection, "Transfer complete"); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "STOR":
 		if err := s.SendCtrl(TransferStarting, "start."); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.RecvFile(arg); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 		if err := s.SendCtrl(CloseDataConnection, "Transfer complete"); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	case "QUIT":
 		if err := s.SendCtrl(ServiceClosingControlConnection, "bye"); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
+	case "MKD":
+		if err := s.Mkdir(arg); err != nil {
+			s.SendError(err)
+			return err
+		}
+		s.SendCtrl(Created, "directory created.")
 	default:
 		if err := s.SendCtrl(NotImplemented, "Not Implemented"); err != nil {
-			s.CloseWithError(err)
+			s.SendError(err)
 			return err
 		}
 	}
@@ -291,8 +301,17 @@ func (s *SessionController) SendFile(filename string) error {
 	return nil
 }
 
-func (s *SessionController) CloseWithError(e error) {
+func (s *SessionController) Mkdir(pathname string) error {
+	path := s.basePath
+	if strings.HasPrefix(pathname, "/") {
+		path += pathname
+	} else {
+		path = s.CurrentPath() + "/" + pathname
+	}
+	return os.Mkdir(path, 0755)
+}
+
+func (s *SessionController) SendError(e error) {
 	s.SendCtrl(RequestedActionNotTaken, fmt.Sprintf("Unknown Error: %v", e))
 	s.SendCtrl(ServiceClosingControlConnection, "shutdown")
-	s.Close()
 }

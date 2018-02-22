@@ -35,6 +35,7 @@ func (s *FTPServer) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("port %d listen \n", s.port)
 
 	for {
 		conn, err := listener.Accept()
@@ -68,7 +69,10 @@ func handleConn(c net.Conn) {
 	done := make(chan struct{})
 	s := NewSessionController(c, exPath, done)
 
-	s.Login()
+	if err := s.Login(); err != nil {
+		s.SendError(err)
+		return
+	}
 
 	for {
 		select {
