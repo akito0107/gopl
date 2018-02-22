@@ -8,9 +8,14 @@ import (
 	"strings"
 
 	"golang.org/x/net/html"
+	"os"
 )
 
 var depth int
+
+func main() {
+	Print(os.Stdin, os.Stdout)
+}
 
 func Print(r io.Reader, w io.Writer) error {
 	doc, err := html.Parse(r)
