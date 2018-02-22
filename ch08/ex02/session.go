@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-type Session struct {
+type SessionController struct {
 	ctrl        *CtrlConnManager
 	data        *DataConnManager
 	basePath    string
@@ -23,10 +23,10 @@ type Session struct {
 	fs          FSManager
 }
 
-func NewSession(conn net.Conn, basePath string, done chan struct{}) *Session {
+func NewSessionController(conn net.Conn, basePath string, done chan struct{}) *SessionController {
 	ctrl := NewCtrlConnManager(conn)
 	ctrl.Run()
-	s := &Session{
+	s := &SessionController{
 		ctrl:        ctrl,
 		basePath:    basePath,
 		currentPath: "/",
@@ -42,8 +42,8 @@ func NewSession(conn net.Conn, basePath string, done chan struct{}) *Session {
 	return s
 }
 
-func (s *Session) Login() {
-	s.SendCtrl(ReadyForUser, "my go ftp server ready")
+func (s *SessionController) Login() {
+	s.SendCtrl(ReadyForUser, "my go ftp server ready (default: user)")
 
 	userseq := strings.Split(s.RecvCtrl(), " ")
 	if !strings.EqualFold(userseq[0], "USER") {
@@ -52,7 +52,7 @@ func (s *Session) Login() {
 	}
 
 	pass := users[userseq[1]]
-	s.SendCtrl(NeedPassword, "Send Password.")
+	s.SendCtrl(NeedPassword, "Send Password. (default: 1234)")
 
 	passseq := strings.Split(s.RecvCtrl(), " ")
 	if !strings.EqualFold(passseq[0], "PASS") {
@@ -67,67 +67,130 @@ func (s *Session) Login() {
 	s.SendCtrl(UserLoggedIn, "Login Successful")
 }
 
-func (s *Session) Handle(command string, arg string) error {
+func (s *SessionController) Handle(command string, arg string) error {
 	switch command {
 	case "SYST":
-		s.SendCtrl(SystemType, "UNIX Type: L8")
+		if err := s.SendCtrl(SystemType, "UNIX Type: L8"); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "FEAT":
-		s.SendCtrl(SystemStatusReply, "End.")
+		if err := s.SendCtrl(SystemStatusReply, "End."); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "PWD":
-		s.SendCtrl(Created, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath()))
+		if err := s.SendCtrl(Created, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath())); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "PORT":
 		network := strings.Split(arg, ",")
 		host := strings.Join(network[0:4], ".")
 
 		base, err := strconv.Atoi(network[4])
 		if err != nil {
-			log.Fatal(err)
+			s.CloseWithError(err)
+			return err
 		}
 		p, err := strconv.Atoi(network[5])
 		if err != nil {
-			log.Fatal(err)
+			s.CloseWithError(err)
+			return err
 		}
 		port := base*256 + p
-		s.OpenDataConn(host, port)
-		s.SendCtrl(OK, "PORT command successful.")
+		if err := s.OpenDataConn(host, port); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.SendCtrl(OK, "PORT command successful."); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "LIST":
-		s.SendCtrl(TransferStarting, "start.")
-		s.Ls()
-		s.SendCtrl(CloseDataConnection, "Transfer complete")
+		if err := s.SendCtrl(TransferStarting, "start."); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.Ls(); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.SendCtrl(CloseDataConnection, "Transfer complete"); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "CWD":
 		s.Cd(arg)
-		s.SendCtrl(RequestedCompleted, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath()))
+		if err := s.SendCtrl(RequestedCompleted, fmt.Sprintf("\"%s\" is the current directory.", s.CurrentPath())); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "TYPE":
 		s.SetType(FromCode(arg))
-		s.SendCtrl(OK, fmt.Sprintf("Type set to: %s", s.Type()))
+		if err := s.SendCtrl(OK, fmt.Sprintf("Type set to: %s", s.Type())); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "SIZE":
-		size := s.Size(arg)
-		s.SendCtrl(FileStat, fmt.Sprintf("%d", size))
+		size, err := s.Size(arg)
+		if err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.SendCtrl(FileStat, fmt.Sprintf("%d", *size)); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "RETR":
-		s.SendCtrl(TransferStarting, "start.")
-		s.SendFile(arg)
-		s.SendCtrl(CloseDataConnection, "Transfer complete")
+		if err := s.SendCtrl(TransferStarting, "start."); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.SendFile(arg); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.SendCtrl(CloseDataConnection, "Transfer complete"); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "STOR":
-		s.SendCtrl(TransferStarting, "start.")
-		s.RecvFile(arg)
-		s.SendCtrl(CloseDataConnection, "Transfer complete")
+		if err := s.SendCtrl(TransferStarting, "start."); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.RecvFile(arg); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
+		if err := s.SendCtrl(CloseDataConnection, "Transfer complete"); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	case "QUIT":
-		s.SendCtrl(ServiceClosingControlConnection, "bye")
+		if err := s.SendCtrl(ServiceClosingControlConnection, "bye"); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	default:
-		s.SendCtrl(NotImplemented, "Not Implemented")
+		if err := s.SendCtrl(NotImplemented, "Not Implemented"); err != nil {
+			s.CloseWithError(err)
+			return err
+		}
 	}
 	return nil
 }
 
-func (s *Session) Close() {
+func (s *SessionController) Close() {
 	close(s.done)
 }
 
-func (s *Session) CurrentPath() string {
+func (s *SessionController) CurrentPath() string {
 	return filepath.Join(s.basePath, s.currentPath)
 }
 
-func (s *Session) OpenDataConn(host string, port int) error {
+func (s *SessionController) OpenDataConn(host string, port int) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	log.Printf("connecting to: %s \n", addr)
 	conn, err := s.opener.Open(host, port)
@@ -142,77 +205,94 @@ func (s *Session) OpenDataConn(host string, port int) error {
 	return nil
 }
 
-func (s *Session) RecvCtrl() string {
+func (s *SessionController) RecvCtrl() string {
 	return s.ctrl.Recv()
 }
 
-func (s *Session) WaitCtrl() <-chan string {
+func (s *SessionController) WaitCtrl() <-chan string {
 	return s.ctrl.out
 }
 
-func (s *Session) SendCtrl(code int, mes string) {
-	s.ctrl.SendMessage(code, mes)
+func (s *SessionController) SendCtrl(code int, mes string) error {
+	return s.ctrl.SendMessage(code, mes)
 }
 
-func (s *Session) RecvFile(filename string) {
+func (s *SessionController) RecvFile(filename string) error {
 	fi, err := s.fs.Create(filepath.Join(s.CurrentPath(), filename))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer fi.Close()
 	s.data.CopyFromConn(fi)
+
+	return nil
 }
 
-func (s *Session) SendData(r io.Reader) {
-	s.data.SendBin(r)
+func (s *SessionController) SendData(r io.Reader) error {
+	return s.data.SendBin(r)
 }
 
-func (s *Session) CloseData() {
+func (s *SessionController) CloseData() {
 	s.data.Close()
 }
 
 // TODO add test
-func (s *Session) Ls() {
+func (s *SessionController) Ls() error {
 	files, err := ioutil.ReadDir(s.CurrentPath())
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	for _, f := range files {
-		p := fmt.Sprintf("%s\t%s\t%s\n", f.Mode(), f.ModTime(), f.Name())
-		s.SendData(bytes.NewBufferString(p))
+		p := fmt.Sprintf("%s\t%s\t%s\r\n", f.Mode(), f.ModTime(), f.Name())
+		if err := s.SendData(bytes.NewBufferString(p)); err != nil {
+			return err
+		}
 	}
 
 	s.CloseData()
+
+	return nil
 }
 
-func (s *Session) Cd(cwd string) {
+func (s *SessionController) Cd(cwd string) {
 	s.currentPath = filepath.Join(s.currentPath, cwd)
 	log.Printf("cd: %s \n", s.currentPath)
 }
 
 // TODO
-func (s *Session) SetType(t TransferMode) {
+func (s *SessionController) SetType(t TransferMode) {
 	s.mode = t
 }
 
-func (s *Session) Type() TransferMode {
+func (s *SessionController) Type() TransferMode {
 	return s.mode
 }
 
-func (s *Session) Size(filename string) int {
+func (s *SessionController) Size(filename string) (*int, error) {
 	fi, err := s.fs.Stat(filepath.Join(s.CurrentPath(), filename))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return int(fi.Size())
+	res := int(fi.Size())
+	return &res, nil
 }
 
-func (s *Session) SendFile(filename string) {
+func (s *SessionController) SendFile(filename string) error {
 	fi, err := s.fs.Open(filepath.Join(s.CurrentPath(), filename))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer fi.Close()
-	s.SendData(fi)
+	if err := s.SendData(fi); err != nil {
+		return err
+	}
 	s.CloseData()
+
+	return nil
+}
+
+func (s *SessionController) CloseWithError(e error) {
+	s.SendCtrl(RequestedActionNotTaken, fmt.Sprintf("Unknown Error: %v", e))
+	s.SendCtrl(ServiceClosingControlConnection, "shutdown")
+	s.Close()
 }

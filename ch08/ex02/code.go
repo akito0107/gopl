@@ -22,3 +22,4 @@ const NeedPassword = 331
 const SyntaxError = 500
 const NotImplemented = 502
 const NotLoggedIn = 530
+const RequestedActionNotTaken = 550

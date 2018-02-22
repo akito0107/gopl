@@ -12,30 +12,37 @@ var users = map[string]string{
 }
 
 type CtrlConnManager struct {
-	conn net.Conn
-	in   chan string
-	ack  chan struct{}
-	out  chan string
-	done chan struct{}
+	conn      net.Conn
+	in        chan string
+	ack       chan struct{}
+	out       chan string
+	done      chan struct{}
+	errorChan chan error
 }
 
 func NewCtrlConnManager(conn net.Conn) *CtrlConnManager {
 	return &CtrlConnManager{
-		conn: conn,
-		in:   make(chan string),
-		ack:  make(chan struct{}),
-		out:  make(chan string),
-		done: make(chan struct{}),
+		conn:      conn,
+		in:        make(chan string),
+		ack:       make(chan struct{}),
+		out:       make(chan string),
+		done:      make(chan struct{}),
+		errorChan: make(chan error),
 	}
 }
 
-func (c *CtrlConnManager) SendMessage(code int, mes string) {
-	c.Send(fmt.Sprintf("%d %s\n", code, mes))
+func (c *CtrlConnManager) SendMessage(code int, mes string) error {
+	return c.Send(fmt.Sprintf("%d %s\n", code, mes))
 }
 
-func (c *CtrlConnManager) Send(mes string) {
+func (c *CtrlConnManager) Send(mes string) error {
 	c.in <- mes
-	<-c.ack
+	select {
+	case <-c.ack:
+		return nil
+	case e := <-c.errorChan:
+		return e
+	}
 }
 
 func (c *CtrlConnManager) Recv() string {

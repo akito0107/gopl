@@ -66,7 +66,7 @@ func handleConn(c net.Conn) {
 	log.Println(exPath)
 
 	done := make(chan struct{})
-	s := NewSession(c, exPath, done)
+	s := NewSessionController(c, exPath, done)
 
 	s.Login()
 
@@ -75,7 +75,9 @@ func handleConn(c net.Conn) {
 		case mes := <-s.WaitCtrl():
 			log.Printf(">> incomming message %s \n", mes)
 			commands := strings.Split(mes, " ")
-			s.Handle(commands[0], strings.Join(commands[1:], " "))
+			if err := s.Handle(commands[0], strings.Join(commands[1:], " ")); err != nil {
+				log.Printf("connection closed with error %v", err)
+			}
 		case <-s.done:
 			log.Println("done received")
 			return

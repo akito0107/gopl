@@ -157,13 +157,13 @@ func TestSession_Handle(t *testing.T) {
 
 }
 
-func newTestSession(basePath string) (*Session, *ftptest.StubConn, chan struct{}) {
+func newTestSession(basePath string) (*SessionController, *ftptest.StubConn, chan struct{}) {
 	block := make(chan struct{})
 	conn := &ftptest.StubConn{
 		ReadBlock: block,
 	}
 	done := make(chan struct{})
-	s := NewSession(conn, basePath, done)
+	s := NewSessionController(conn, basePath, done)
 	return s, conn, done
 }
 
