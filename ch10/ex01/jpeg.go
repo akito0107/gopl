@@ -16,13 +16,13 @@ var outFormat = flag.String("f", "png", "output format (default png)")
 
 func main() {
 	flag.Parse()
-	if err := toJPEG(os.Stdin, os.Stdout); err != nil {
+	if err := writeImage(os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "jpeg: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func toJPEG(in io.Reader, out io.Writer) error {
+func writeImage(in io.Reader, out io.Writer) error {
 	img, kind, err := image.Decode(in)
 	if err != nil {
 		return err
