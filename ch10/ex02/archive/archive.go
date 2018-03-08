@@ -17,12 +17,11 @@ type Config struct{}
 
 type Reader interface {
 	Files() []File
-	SetConfig(*Config) error
 }
 
 type File interface {
 	FileInfo() os.FileInfo
-	Open() (io.ReadCloser, error)
+	Open() (io.Reader, error)
 }
 
 var formats []format
@@ -33,6 +32,7 @@ func RegisterFormat(name, magic string, decode func(string) (Reader, error)) {
 
 func Decode(filename string) (Reader, error) {
 	file, err := os.Open(filename)
+	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +44,7 @@ func Decode(filename string) (Reader, error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Printf("%s\n", b)
 		if string(b) == format.magic {
 			log.Printf("decoding %s format\n", format.name)
 			return format.decode(filename)
