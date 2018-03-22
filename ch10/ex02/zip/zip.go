@@ -7,13 +7,26 @@ import (
 	"io"
 	"os"
 
+	"bufio"
+
 	"github.com/akito0107/gopl/ch10/ex02/archive"
 )
 
 const zipHeader = "\x50\x4b"
 
 func init() {
-	archive.RegisterFormat("zip", zipHeader, Decode)
+	checker := func(r *bufio.Reader) (bool, error) {
+		size := len(zipHeader)
+		b, err := r.Peek(size)
+		if err != nil {
+			return false, err
+		}
+		if string(b) == zipHeader {
+			return true, nil
+		}
+		return false, nil
+	}
+	archive.RegisterFormat("zip", checker, Decode)
 }
 
 type Reader struct {
@@ -38,6 +51,10 @@ func (r *Reader) Files() []archive.File {
 		files = append(files, &File{inner: f})
 	}
 	return files
+}
+
+func (r *Reader) Close() error {
+	return r.inner.Close()
 }
 
 func Decode(filename string) (archive.Reader, error) {

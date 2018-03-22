@@ -9,14 +9,16 @@ import (
 )
 
 type format struct {
-	name, magic string
-	decode      func(string) (Reader, error)
+	name    string
+	checker func(*bufio.Reader) (bool, error)
+	decode  func(string) (Reader, error)
 }
 
 type Config struct{}
 
 type Reader interface {
 	Files() []File
+	Close() error
 }
 
 type File interface {
@@ -26,8 +28,8 @@ type File interface {
 
 var formats []format
 
-func RegisterFormat(name, magic string, decode func(string) (Reader, error)) {
-	formats = append(formats, format{name, magic, decode})
+func RegisterFormat(name string, checker func(*bufio.Reader) (bool, error), decode func(string) (Reader, error)) {
+	formats = append(formats, format{name, checker, decode})
 }
 
 func Decode(filename string) (Reader, error) {
@@ -39,13 +41,12 @@ func Decode(filename string) (Reader, error) {
 	reader := bufio.NewReader(file)
 
 	for _, format := range formats {
-		size := len(format.magic)
-		b, err := reader.Peek(size)
+		ok, err := format.checker(reader)
 		if err != nil {
-			return nil, err
+			log.Printf("error occured %v", err)
+			continue
 		}
-		log.Printf("%s\n", b)
-		if string(b) == format.magic {
+		if ok {
 			log.Printf("decoding %s format\n", format.name)
 			return format.decode(filename)
 		}

@@ -9,12 +9,16 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	filename := "sample.tar"
 
 	reader, err := archive.Decode(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer reader.Close()
+
 	files := reader.Files()
 
 	for _, f := range files {
