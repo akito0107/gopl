@@ -25,15 +25,3 @@ func TestPopCountShift(t *testing.T) {
 		t.Errorf("must be 64 but %d", i)
 	}
 }
-
-func BenchmarkPopCountShift(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		PopCountShift(100)
-	}
-}
-
-func BenchmarkPopCount(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		PopCount(100)
-	}
-}
