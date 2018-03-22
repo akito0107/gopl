@@ -1,6 +1,9 @@
 package ex06
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func BenchmarkPopCountLowest100(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -22,19 +25,19 @@ func BenchmarkPopCountShift100(b *testing.B) {
 
 func BenchmarkPopCountLowestMax(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		PopCountLowest(18446744073709551615)
+		PopCountLowest(math.MaxInt64)
 	}
 }
 
 func BenchmarkPopCountMax(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		PopCount(18446744073709551615)
+		PopCount(math.MaxInt64)
 	}
 }
 
 func BenchmarkPopCountShiftMax(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		PopCountShift(18446744073709551615)
+		PopCountShift(math.MaxInt64)
 	}
 }
 
