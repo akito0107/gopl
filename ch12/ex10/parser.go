@@ -1,4 +1,4 @@
-package ex09
+package ex10
 
 import (
 	"bytes"
@@ -28,6 +28,14 @@ func read(lex *lexer, v reflect.Value) {
 			v.Set(reflect.Zero(v.Type()))
 			lex.next()
 			return
+		} else if lex.text() == "true" {
+			v.SetBool(true)
+			lex.next()
+			return
+		} else if lex.text() == "false" {
+			v.SetBool(false)
+			lex.next()
+			return
 		}
 	case scanner.String:
 		s, _ := strconv.Unquote(lex.text())
@@ -37,6 +45,11 @@ func read(lex *lexer, v reflect.Value) {
 	case scanner.Int:
 		i, _ := strconv.Atoi(lex.text())
 		v.SetInt(int64(i))
+		lex.next()
+		return
+	case scanner.Float:
+		f, _ := strconv.ParseFloat(lex.text(), 64)
+		v.SetFloat(f)
 		lex.next()
 		return
 	case '(':
