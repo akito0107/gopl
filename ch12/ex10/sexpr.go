@@ -19,6 +19,16 @@ func encode(buf *bytes.Buffer, v reflect.Value) error {
 		fmt.Fprintf(buf, "%q", v.String())
 	case reflect.Ptr:
 		return encode(buf, v.Elem())
+	case reflect.Bool:
+		if v.Bool() {
+			buf.WriteString("t")
+		} else {
+			buf.WriteString("nil")
+		}
+	case reflect.Float32, reflect.Float64:
+		fmt.Fprintf(buf, "%G", v.Float())
+	case reflect.Complex64, reflect.Complex128:
+		fmt.Fprintf(buf, "#C(%G %G)", real(v.Complex()), imag(v.Complex()))
 	case reflect.Array, reflect.Slice:
 		buf.WriteByte('(')
 		for i := 0; i < v.Len(); i++ {
@@ -37,7 +47,7 @@ func encode(buf *bytes.Buffer, v reflect.Value) error {
 				buf.WriteByte(' ')
 			}
 			fmt.Fprintf(buf, "(%s", v.Type().Field(i).Name)
-			if err := encode(buf, v.Index(i)); err != nil {
+			if err := encode(buf, v.Field(i)); err != nil {
 				return err
 			}
 			buf.WriteByte(')')
@@ -60,6 +70,17 @@ func encode(buf *bytes.Buffer, v reflect.Value) error {
 			}
 			buf.WriteByte(')')
 		}
+		buf.WriteByte(')')
+
+	case reflect.Interface:
+		buf.WriteByte('(')
+		t := v.Type()
+		if t.Name() == "" {
+			fmt.Fprintf(buf, "%q ", v.Elem().Type().String())
+		} else {
+			fmt.Fprintf(buf, `"%s.%s" `, t.PkgPath(), t.Name())
+		}
+		encode(buf, v.Elem())
 		buf.WriteByte(')')
 
 	default:
