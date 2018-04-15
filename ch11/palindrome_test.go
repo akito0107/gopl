@@ -1,9 +1,11 @@
-package ch11
+package ch11_test
 
 import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/akito0107/gopl/ch11"
 )
 
 func randomPalindrome(rng *rand.Rand) string {
@@ -23,7 +25,7 @@ func TestIsPalindrome(t *testing.T) {
 	rng := rand.New(rand.NewSource(seed))
 	for i := 0; i < 1000; i++ {
 		p := randomPalindrome(rng)
-		if !IsPalindrome(p) {
+		if !ch11.IsPalindrome(p) {
 			t.Errorf("isPalindrome(%q) = false", p)
 		}
 	}
