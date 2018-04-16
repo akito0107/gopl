@@ -1,5 +1,5 @@
 #!/bin/bash
 
 go build -o out
-./out -n 1000000
+./out -n 10000000
 rm out

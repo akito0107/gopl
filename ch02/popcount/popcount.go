@@ -18,3 +18,4 @@ func PopCount(x uint64) int {
 		pc[byte(x>>(6*8))] +
 		pc[byte(x>>(7*8))])
 }
+
