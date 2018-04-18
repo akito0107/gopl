@@ -15,6 +15,8 @@ func Unpack(req *http.Request, ptr interface{}) error {
 		return err
 	}
 	fields := make(map[string]reflect.Value)
+	validators := make(map[string]string)
+
 	v := reflect.ValueOf(ptr).Elem()
 	for i := 0; i < v.NumField(); i++ {
 		fieldInfo := v.Type().Field(i)
@@ -25,11 +27,10 @@ func Unpack(req *http.Request, ptr interface{}) error {
 		}
 		validatorInfo := tag.Get("validate")
 		if validatorInfo != "" {
-			fmt.Println(v.Field(i))
-			res := validator.Validate(validatorInfo, v.Field(i).Interface())
-			if !res {
-				return fmt.Errorf("validate failed filed: %s, rule: %s", fieldInfo.Name, validatorInfo)
-			}
+			validators[name] = validatorInfo
+			//if !res {
+			//	return fmt.Errorf("validate failed filed: %s, rule: %s", fieldInfo.Name, validatorInfo)
+			//}
 		}
 		fields[name] = v.Field(i)
 	}
@@ -39,7 +40,13 @@ func Unpack(req *http.Request, ptr interface{}) error {
 		if !f.IsValid() {
 			continue
 		}
+
 		for _, value := range values {
+			if validateInfo, ok := validators[name]; ok {
+				if !validator.Validate(validateInfo, value) {
+					return fmt.Errorf("validate failed filed: %s, rule: %s", name, validateInfo)
+				}
+			}
 			if f.Kind() == reflect.Slice {
 				elem := reflect.New(f.Type().Elem()).Elem()
 				if err := populate(elem, value); err != nil {

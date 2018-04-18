@@ -27,5 +27,6 @@ func TestUnpack(t *testing.T) {
 		if err == nil {
 			t.Errorf("invalid email")
 		}
+		t.Log(err)
 	})
 }
