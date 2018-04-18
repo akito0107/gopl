@@ -7,8 +7,12 @@ import (
 )
 
 func Test_encode(t *testing.T) {
-
-	testStruct := struct {
+	testStruct1 := struct {
+		v interface{}
+	}{
+		v: int32(123),
+	}
+	testStruct2 := struct {
 		v interface{}
 	}{
 		v: []int{1, 2, 3},
@@ -46,7 +50,12 @@ func Test_encode(t *testing.T) {
 		},
 		{
 			name: "interface with struct",
-			in:   testStruct,
+			in:   testStruct1,
+			out:  `((v("int32" 123)))`,
+		},
+		{
+			name: "interface with struct",
+			in:   testStruct2,
 			out:  `((v("[]int" (1 2 3))))`,
 		},
 	}

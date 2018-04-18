@@ -28,9 +28,6 @@ func Unpack(req *http.Request, ptr interface{}) error {
 		validatorInfo := tag.Get("validate")
 		if validatorInfo != "" {
 			validators[name] = validatorInfo
-			//if !res {
-			//	return fmt.Errorf("validate failed filed: %s, rule: %s", fieldInfo.Name, validatorInfo)
-			//}
 		}
 		fields[name] = v.Field(i)
 	}

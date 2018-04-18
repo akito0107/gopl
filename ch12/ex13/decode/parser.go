@@ -1,4 +1,4 @@
-package ex10
+package decode
 
 import (
 	"bytes"
@@ -86,7 +86,14 @@ func readList(lex *lexer, v reflect.Value) {
 			}
 			name := lex.text()
 			lex.next()
-			read(lex, v.FieldByName(name))
+			val := v.FieldByName(name)
+			for i := 0; i < v.NumField(); i++ {
+				tag := v.Type().Field(i).Tag.Get("sexpr")
+				if tag == name {
+					val = v.Field(i)
+				}
+			}
+			read(lex, val)
 			lex.consume(')')
 		}
 	case reflect.Map:
