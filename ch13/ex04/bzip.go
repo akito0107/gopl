@@ -31,6 +31,7 @@ func (w *writer) Write(data []byte) (int, error) {
 
 func (w *writer) Close() (err error) {
 	err = w.cmdin.Close()
+	w.cmd.Wait()
 
 	return
 }
